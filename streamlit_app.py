@@ -19,28 +19,41 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS로 사이드바 제목을 네비게이션 위에 배치
+# CSS로 사이드바 요소 순서 강제 변경 (제목 → 메뉴 → 필터)
 st.markdown("""
 <style>
-    [data-testid="stSidebarContent"] > div:first-child {
-        padding-top: 0;
+    /* 사이드바 컨텐츠를 flexbox로 변경 */
+    section[data-testid="stSidebar"] > div > div > div {
+        display: flex !important;
+        flex-direction: column !important;
     }
+
+    /* 제목 컨테이너를 맨 위로 (order: -2) */
+    section[data-testid="stSidebar"] div:has(> .sidebar-title) {
+        order: -2 !important;
+    }
+
+    /* 네비게이션 메뉴 (order: -1) */
+    [data-testid="stSidebarNav"] {
+        order: -1 !important;
+    }
+
     .sidebar-title {
         font-size: 1.5rem;
         font-weight: 600;
-        padding: 1rem 1rem 0.5rem 1rem;
+        padding: 0.5rem 0;
         margin: 0;
     }
     .sidebar-caption {
         font-size: 0.85rem;
         color: #808080;
-        padding: 0 1rem 1rem 1rem;
+        padding-bottom: 0.5rem;
         margin: 0;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 사이드바 제목 (CSS로 상단 고정)
+# 사이드바 제목
 st.sidebar.markdown('<p class="sidebar-title">🏨 HGVC 딜 파인더</p>', unsafe_allow_html=True)
 st.sidebar.markdown('<p class="sidebar-caption">HGVC 타임쉐어 리셀 매물 분석</p>', unsafe_allow_html=True)
 st.sidebar.markdown("---")
