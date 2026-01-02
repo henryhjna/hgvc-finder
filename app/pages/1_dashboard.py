@@ -138,6 +138,140 @@ def get_grade_emoji(grade: str) -> str:
     return emoji_map.get(grade, '⚪')
 
 
+def render_user_guide():
+    """사용자 가이드 정보 표시"""
+    st.markdown("---")
+
+    st.subheader("HGVC 리셀 매물 찾기 가이드")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("""
+        #### 핵심 지표: MF per Point (MF/pt)
+
+        **MF/pt = 연간 관리비 / 포인트**
+
+        이 수치가 낮을수록 효율적인 매물입니다.
+
+        | 등급 | MF/pt | 평가 |
+        |------|-------|------|
+        | 🟢 최고 | $0.10 이하 | 매우 희귀, 즉시 검토 |
+        | 🟡 좋음 | $0.10-0.15 | 괜찮은 딜 |
+        | 🟠 보통 | $0.15-0.20 | 시장 평균 |
+        | 🔴 비추천 | $0.20 이상 | 비효율적 |
+        """)
+
+    with col2:
+        st.markdown("""
+        #### 추천 검색 조건
+
+        **입문자용 (저예산)**
+        - 가격: $5,000 이하
+        - 포인트: 3,000-5,000
+        - 위치: Las Vegas (MF 저렴)
+
+        **가성비 추천**
+        - MF/pt: $0.15 이하
+        - 사용주기: Annual
+        - 위치: Las Vegas, Orlando
+
+        **프리미엄 (하와이)**
+        - 포인트: 7,000 이상
+        - 위치: Hawaii
+        - MF/pt: $0.18 이하면 양호
+        """)
+
+    st.markdown("---")
+
+    with st.expander("리조트별 특징 보기"):
+        st.markdown("""
+        | 위치 | 대표 리조트 | 특징 |
+        |------|------------|------|
+        | **Las Vegas** | Elara, Boulevard, Flamingo | MF 저렴, 포인트 효율 좋음 |
+        | **Orlando** | Parc Soleil, SeaWorld | 가족 여행에 적합, 중간 MF |
+        | **Hawaii** | Ocean Tower, Kings Land | 인기 높음, MF 비쌈 |
+        | **New York** | Hilton Club NYC | 도심, 높은 MF |
+        | **Myrtle Beach** | Ocean 22 | 해변, 저렴한 편 |
+        """)
+
+    with st.expander("10년 총비용 계산법"):
+        st.markdown("""
+        **Annual (매년 사용)**
+        ```
+        10년 비용 = 매물가격 + 클로징비용($1,100) + (연간MF × 10년)
+        ```
+
+        **EOY (격년 사용)**
+        ```
+        10년 비용 = 매물가격 + 클로징비용($1,100) + (연간MF × 5년) + (클럽회비 $209 × 10년)
+        ```
+
+        *EOY는 포인트를 2년에 한 번 받으므로 연환산 시 포인트÷2로 계산*
+        """)
+
+    with st.expander("주의사항"):
+        st.markdown("""
+        - **MF 정보 확인 필수**: 매물 페이지의 MF가 오래된 정보일 수 있음
+        - **포인트 확인**: 일부 매물은 포인트 정보가 누락됨 (? 표시)
+        - **직접 확인**: 구매 전 반드시 판매자에게 최신 MF 확인
+        - **클로징 비용**: 별도 $800-1,500 예상
+        - **ROFR**: Hilton이 먼저 구매할 권리 있음 (2-4주 소요)
+        """)
+
+
+def render_market_summary(stats: dict, df: pd.DataFrame):
+    """현재 시장 현황 요약"""
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("#### 현재 매물 현황")
+
+        # 위치별 분포
+        if 'location' in df.columns:
+            location_counts = df['location'].value_counts().head(5)
+            st.markdown("**위치별 매물 수**")
+            for loc, count in location_counts.items():
+                st.markdown(f"- {loc}: {count}개")
+
+        # 가격대 분포
+        if 'asking_price' in df.columns:
+            price_df = df[df['asking_price'].notna()]
+            if not price_df.empty:
+                st.markdown(f"""
+                **가격 범위**
+                - 최저: ${price_df['asking_price'].min():,.0f}
+                - 최고: ${price_df['asking_price'].max():,.0f}
+                - 평균: ${price_df['asking_price'].mean():,.0f}
+                """)
+
+    with col2:
+        st.markdown("#### 오늘의 추천 기준")
+
+        avg_mf = stats.get('avg_mf_per_point')
+        if avg_mf:
+            st.markdown(f"""
+            현재 평균 MF/pt: **${avg_mf:.3f}**
+
+            **추천 필터 설정:**
+            - MF/pt $0.15 이하로 필터링
+            - 🟢🟡 등급 위주로 검토
+            - Annual 사용주기 우선
+
+            **좋은 딜 조건:**
+            - MF/pt가 평균(${avg_mf:.3f})보다 낮음
+            - 포인트 정보가 명확함 (?가 아님)
+            - 10년 비용 대비 효율적
+            """)
+        else:
+            st.markdown("""
+            **추천 필터 설정:**
+            - MF/pt $0.15 이하로 필터링
+            - 🟢🟡 등급 위주로 검토
+            - Annual 사용주기 우선
+            """)
+
+
 def render_listings_table(df: pd.DataFrame, enriched_df: pd.DataFrame):
     """매물 테이블 렌더링"""
     if df.empty:
@@ -186,7 +320,10 @@ def main():
         mf_ref_df = load_mf_reference_df()
 
     if listings_df.empty:
+        # 데이터 없을 때 가이드 표시
         st.warning("매물 데이터가 없습니다. '데이터 관리' 페이지에서 스크래핑을 실행하세요.")
+
+        render_user_guide()
 
         if st.button("데이터 관리로 이동"):
             st.switch_page("pages/data_management.py")
@@ -200,6 +337,10 @@ def main():
 
     # 요약 통계
     stats = get_summary_stats(filtered_df)
+
+    # 현황 요약
+    with st.expander("현재 시장 현황 및 검색 가이드", expanded=False):
+        render_market_summary(stats, filtered_df)
 
     st.markdown("---")
 
