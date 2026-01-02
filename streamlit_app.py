@@ -19,6 +19,11 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# 사이드바 헤더 (메뉴보다 먼저)
+st.sidebar.title("🏨 HGVC 딜 파인더")
+st.sidebar.caption("HGVC 타임쉐어 리셀 매물 분석")
+st.sidebar.markdown("---")
+
 # 페이지 정의
 dashboard_page = st.Page(
     "app/pages/1_dashboard.py",
@@ -39,13 +44,6 @@ data_page = st.Page(
     icon="🔧"
 )
 
-# 네비게이션 설정
+# 네비게이션 설정 및 실행
 pg = st.navigation([dashboard_page, analysis_page, data_page])
-
-# 사이드바 헤더
-st.sidebar.title("🏨 HGVC 딜 파인더")
-st.sidebar.caption("HGVC 타임쉐어 리셀 매물 분석")
-st.sidebar.markdown("---")
-
-# 선택된 페이지 실행
 pg.run()
