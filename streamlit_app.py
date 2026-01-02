@@ -19,50 +19,44 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS로 사이드바 요소 순서 강제 변경 (제목 → 메뉴 → 필터)
-st.markdown("""
-<style>
-    /* 사이드바 컨텐츠를 flexbox로 변경 */
-    section[data-testid="stSidebar"] > div > div > div {
-        display: flex !important;
-        flex-direction: column !important;
-    }
-
-    /* 제목 컨테이너를 맨 위로 (order: -2) */
-    section[data-testid="stSidebar"] div:has(> .sidebar-title) {
-        order: -2 !important;
-    }
-
-    /* 네비게이션 메뉴 (order: -1) */
-    [data-testid="stSidebarNav"] {
-        order: -1 !important;
-    }
-
-    .sidebar-title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        padding: 0.5rem 0;
-        margin: 0;
-    }
-    .sidebar-caption {
-        font-size: 0.85rem;
-        color: #808080;
-        padding-bottom: 0.5rem;
-        margin: 0;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# 사이드바 제목
-st.sidebar.markdown('<p class="sidebar-title">🏨 HGVC 딜 파인더</p>', unsafe_allow_html=True)
-st.sidebar.markdown('<p class="sidebar-caption">HGVC 타임쉐어 리셀 매물 분석</p>', unsafe_allow_html=True)
+# 사이드바 제목 (먼저 렌더링)
+st.sidebar.title("🏨 HGVC 딜 파인더")
+st.sidebar.caption("HGVC 타임쉐어 리셀 매물 분석")
 st.sidebar.markdown("---")
 
 # 페이지 정의
-dashboard_page = st.Page("app/pages/1_dashboard.py", title="딜 대시보드", icon="📊", default=True)
-analysis_page = st.Page("app/pages/2_analysis.py", title="분석", icon="📈")
-data_page = st.Page("app/pages/3_data_management.py", title="데이터 관리", icon="🔧")
+pages = [
+    st.Page("app/pages/1_dashboard.py", title="딜 대시보드", icon="📊", default=True),
+    st.Page("app/pages/2_analysis.py", title="분석", icon="📈"),
+    st.Page("app/pages/3_data_management.py", title="데이터 관리", icon="🔧"),
+]
 
-# 네비게이션
-pg = st.navigation([dashboard_page, analysis_page, data_page], position="sidebar")
+# 네비게이션 (hidden으로 자동 사이드바 렌더링 비활성화)
+pg = st.navigation(pages, position="hidden")
+
+# 수동 메뉴 (라디오 버튼)
+page_options = {
+    "📊 딜 대시보드": "app/pages/1_dashboard.py",
+    "📈 분석": "app/pages/2_analysis.py",
+    "🔧 데이터 관리": "app/pages/3_data_management.py",
+}
+
+# 현재 페이지 확인
+current_page = st.session_state.get("current_page", "📊 딜 대시보드")
+
+selection = st.sidebar.radio(
+    "메뉴",
+    options=list(page_options.keys()),
+    index=list(page_options.keys()).index(current_page) if current_page in page_options else 0,
+    label_visibility="collapsed"
+)
+
+# 페이지 전환
+if selection != current_page:
+    st.session_state["current_page"] = selection
+    st.switch_page(page_options[selection])
+
+st.sidebar.markdown("---")
+
+# 현재 페이지 실행
 pg.run()
